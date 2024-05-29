@@ -12,40 +12,44 @@ import {
   TaskInput,
 } from "./style";
 
-//para validar informações vindas em objectos do form ex: {name:'breno',idade:7}, caso fosse um array seria zod.array
-// dentro dele configuramos como queremos tratar os campos
 const newCycleFormValidationSchema = zod.object({
   //string que tenha no minimo 1 caracterer
   task:zod.string().min(1,'Informe a tarefa'),
-  minutesAmount:zod.number().min(5).max(60),
+  minutesAmount:zod
+  .number()
+  .min(5, 'O ciclo precisa se de no mínimo 5 minutos').
+  max(60,'O ciclo precisa se de no mínimo 60 minutos'),
 })
+
+// ao invez de usar o interface, pegamos a tipagem recebida do proprio zod.object que configuramos
+// e precisamos usar typeof para dizer ao js que é uma typagem
+// essa é uma função do proprio zod
+type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
+/* interface NewCycleFormData{
+  task:string;
+  minutesAmount:number
+} */
 export function Home() {
 
-  
-  // quanso usar controlled/ uncontrolled
-  //controlled é colocar value, e onChange para que tenhamos controle total do campo
-  //uncontrolled é quando pegamos os valores somente quando é feito o submit
-  // uncontrolled é usado mais para quando a formularios muito grandes, pois a cada letra digitada,
-  //a aplicação atualiza e isso em uns 20, 100 input deixaria a aplicação lerda
-  // nessa aplicação usaremos a react hook form, que usa esse dois conceitos
-
-
-  //register para registrar o campo
-  //handle submit para capturar e tratar os dados apos o submit
-  //watch para poder verficar um campo especifico, como valores 
-  //formState podemos ver as informações vinda apos o submit, inclusives os erros
-  const {register,handleSubmit,watch,formState} = useForm({
-    resolver:zodResolver(newCycleFormValidationSchema)
+  // so podemos tipar funções proprias quando passar o mouse por cima e ela estiverem como <any> ou <{} any>
+  const {register,handleSubmit,watch,formState,reset} = useForm<NewCycleFormData>({
+    resolver:zodResolver(newCycleFormValidationSchema),
+    defaultValues:{
+      task:'',
+      minutesAmount:0
+    }
   })
   const task = watch('task')
   const isSubmitDisabled = !task
   console.log(formState.errors)
-  function handleCreateNewCiclo(data:any){
+  function handleCreateNewCiclo(data:NewCycleFormData){
     console.log(data)
+    //reset so devolve os valores originais que configuramos no defaultValues
+    reset()
   }
   return (
     <HomeContainer>
-      {/* dentro de submit usamos a função propria do reacthookform vinda do useForm, dentro dele vai a função que usamos para receber os dados */}
+     
       <form onSubmit={handleSubmit(handleCreateNewCiclo)} action="">
         <FormContainer>
           <label htmlFor="task">Vou trabalhar em</label>
