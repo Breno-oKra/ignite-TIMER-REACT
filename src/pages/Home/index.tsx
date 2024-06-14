@@ -1,90 +1,107 @@
-import { Play } from "phosphor-react";
-import {useForm} from 'react-hook-form';
-import {zodResolver} from '@hookform/resolvers/zod';
-import * as zod from 'zod'
+import { HandPalm, Play } from "phosphor-react";
+
 import {
-  CountdownContainer,
-  FormContainer,
   HomeContainer,
-  MinutesAmoutInput,
-  Separator,
   StartCountDownButton,
-  TaskInput,
+  StopCountDownButton,
+
 } from "./style";
+import { useEffect, useState } from "react";
 
-const newCycleFormValidationSchema = zod.object({
-  //string que tenha no minimo 1 caracterer
-  task:zod.string().min(1,'Informe a tarefa'),
-  minutesAmount:zod
-  .number()
-  .min(5, 'O ciclo precisa se de no mínimo 5 minutos').
-  max(60,'O ciclo precisa se de no mínimo 60 minutos'),
-})
+import { NewCycleForm } from "./components/NewCycleForm";
+import { Countdown } from "./components/Countdown";
 
-// ao invez de usar o interface, pegamos a tipagem recebida do proprio zod.object que configuramos
-// e precisamos usar typeof para dizer ao js que é uma typagem
-// essa é uma função do proprio zod
-type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
-/* interface NewCycleFormData{
-  task:string;
-  minutesAmount:number
-} */
+
+interface Cycle {
+  id: string;
+  task: string;
+  minutesAmount: number;
+  startDate: Date;
+  interruptedDate?: Date;
+  finishedDate?: Date;
+}
 export function Home() {
+  const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [activeCycleId, setActiveCycledId] = useState<string | null>(null);
+ 
+  
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
 
-  // so podemos tipar funções proprias quando passar o mouse por cima e ela estiverem como <any> ou <{} any>
-  const {register,handleSubmit,watch,formState,reset} = useForm<NewCycleFormData>({
-    resolver:zodResolver(newCycleFormValidationSchema),
-    defaultValues:{
-      task:'',
-      minutesAmount:0
+
+
+  const isSubmitDisabled = !task;
+  
+  function handleCreateNewCiclo(data: NewCycleFormData) {
+    const id = String(new Date().getTime());
+    const newCycle: Cycle = {
+      id,
+      task: data.task,
+      minutesAmount: data.minutesAmount,
+      startDate: new Date(),
+    };
+    // sempre que depender do valor anterior, é indicado usar esse formato com arrow func
+    // antes: setCycles([...cycles,newCycles])
+    setCycles((state) => [...state, newCycle]);
+    setActiveCycledId(id);
+    setAmountSecondsPassed(0);
+    reset();
+  }
+  
+  const currentSeconds = activeCycle ? totalSeconds - amountSecondPassed : 0;
+  
+  const minutesAmount = Math.floor(currentSeconds / 60);
+  const secondsAmount = currentSeconds % 60;
+  
+  // padStart preenche string que não tem o tamnho atribuido ex: configuramos que a string tem que ter 2 caracter
+  // ou seja se a string for 1, ela vai adionar o 0 que informamos na frente para preencher 2 caracter, em caso de 10 para cima, ela não adiciona
+  const minutes = String(minutesAmount).padStart(2, "0");
+  const seconds = String(secondsAmount).padStart(2, "0");
+  
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `Timer ${minutes}:${seconds}`;
     }
-  })
-  const task = watch('task')
-  const isSubmitDisabled = !task
-  console.log(formState.errors)
-  function handleCreateNewCiclo(data:NewCycleFormData){
-    console.log(data)
-    //reset so devolve os valores originais que configuramos no defaultValues
-    reset()
+  }, [minutes, seconds, activeCycle]);
+
+  /** Props Drilling -> quando tem muitas propriedades apenas para comunicação entre componentes
+   * para resolver isso usamos a Context API -> permite compartilharmos informações ebtre varios componentes ao mesmo tempo
+   * 
+   * 
+  */
+
+  const task = watch("task");
+  function handleInterruptCycle() {
+    setActiveCycledId(null);
+    setCycles(
+      state => state.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptedDate: new Date() };
+        } else {
+          return cycle;
+        }
+      })
+    );
   }
   return (
     <HomeContainer>
-     
       <form onSubmit={handleSubmit(handleCreateNewCiclo)} action="">
-        <FormContainer>
-          <label htmlFor="task">Vou trabalhar em</label>
-          <TaskInput
-            id="taks"
-            type="text"
-            placeholder="De um nome para o seu projeto"
-            list="task-suggestions"
-            {...register('task')}
-          />
-          <datalist id="task-suggestions">
-            <option value="Projeto1"/>
-            <option value="Projeto2"/>
-            <option value="Projeto3"/>
-            <option value="Projeto4"/>
-          </datalist>
-          <label htmlFor="minutesAmout">durante</label>
-          {/* aqui usamos {...register para espalhar sua propiedade, e damos o nome e atribuimos valor number} */}
-          <MinutesAmoutInput id="minutesAmout" type="number" step={5} min={5} max={60}  placeholder="00"  {...register('minutesAmount',{valueAsNumber:true})} />
-
-          <span>minutos.</span>
-        </FormContainer>
-
-        <CountdownContainer>
-          <span>0</span>
-          <span>0</span>
-          <Separator>:</Separator>
-          <span>0</span>
-          <span>0</span>
-        </CountdownContainer>
-
-        <StartCountDownButton type="submit" disabled={isSubmitDisabled} >
-          <Play size={24} />
-          começar
-        </StartCountDownButton>
+        <NewCycleForm/>
+        {/* 
+          exemplo de props drilling - muitas informações e ainda falta
+        <Countdown activeCycle={activeCycle} setCycles={setCycles} activeCycleId={activeCycleId}/> 
+        */}
+        <Countdown activeCycle={activeCycle} setCycles={setCycles} activeCycleId={activeCycleId}/>
+        {activeCycle ? (
+          <StopCountDownButton onClick={handleInterruptCycle} type="button">
+            <HandPalm size={24} />
+            Interromper
+          </StopCountDownButton>
+        ) : (
+          <StartCountDownButton type="submit" disabled={isSubmitDisabled}>
+            <Play size={24} />
+            começar
+          </StartCountDownButton>
+        )}
       </form>
     </HomeContainer>
   );
