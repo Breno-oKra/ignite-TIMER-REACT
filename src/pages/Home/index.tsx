@@ -6,98 +6,58 @@ import {
   StopCountDownButton,
 
 } from "./style";
-import { useEffect, useState } from "react";
-
+import { useContext } from "react";
+import * as zod from 'zod'
 import { NewCycleForm } from "./components/NewCycleForm";
 import { Countdown } from "./components/Countdown";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CyclesContext } from "../../contexts/CyclesContext";
 
 
-interface Cycle {
-  id: string;
-  task: string;
-  minutesAmount: number;
-  startDate: Date;
-  interruptedDate?: Date;
-  finishedDate?: Date;
-}
+const newCycleFormValidationSchema = zod.object({
+  task: zod.string().min(1, 'Informe a tarefa'),
+  minutesAmount: zod
+    .number()
+    .min(5, 'O ciclo precisa ser de no mínimo 5 minutos.')
+    .max(60, 'O ciclo precisa ser de no máximo 60 minutos.'),
+})
+type NewCycleFormData = Zod.infer<typeof newCycleFormValidationSchema>
 export function Home() {
-  const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [activeCycleId, setActiveCycledId] = useState<string | null>(null);
- 
-  
-  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
+  const { activeCycle, createNewCiclo, InterruptCurrentCycle } = useContext(CyclesContext)
 
 
+  const newCycleForm = useForm<NewCycleFormData>({
+    resolver: zodResolver(newCycleFormValidationSchema),
+    defaultValues: {
+      task: "",
+      minutesAmount: 0,
+    },
+  });
+  const { handleSubmit, watch } = newCycleForm
 
-  const isSubmitDisabled = !task;
-  
-  function handleCreateNewCiclo(data: NewCycleFormData) {
-    const id = String(new Date().getTime());
-    const newCycle: Cycle = {
-      id,
-      task: data.task,
-      minutesAmount: data.minutesAmount,
-      startDate: new Date(),
-    };
-    // sempre que depender do valor anterior, é indicado usar esse formato com arrow func
-    // antes: setCycles([...cycles,newCycles])
-    setCycles((state) => [...state, newCycle]);
-    setActiveCycledId(id);
-    setAmountSecondsPassed(0);
-    reset();
-  }
-  
-  const currentSeconds = activeCycle ? totalSeconds - amountSecondPassed : 0;
-  
-  const minutesAmount = Math.floor(currentSeconds / 60);
-  const secondsAmount = currentSeconds % 60;
-  
-  // padStart preenche string que não tem o tamnho atribuido ex: configuramos que a string tem que ter 2 caracter
-  // ou seja se a string for 1, ela vai adionar o 0 que informamos na frente para preencher 2 caracter, em caso de 10 para cima, ela não adiciona
-  const minutes = String(minutesAmount).padStart(2, "0");
-  const seconds = String(secondsAmount).padStart(2, "0");
-  
-  useEffect(() => {
-    if (activeCycle) {
-      document.title = `Timer ${minutes}:${seconds}`;
-    }
-  }, [minutes, seconds, activeCycle]);
-
-  /** Props Drilling -> quando tem muitas propriedades apenas para comunicação entre componentes
-   * para resolver isso usamos a Context API -> permite compartilharmos informações ebtre varios componentes ao mesmo tempo
-   * 
-   * 
-  */
 
   const task = watch("task");
-  function handleInterruptCycle() {
-    setActiveCycledId(null);
-    setCycles(
-      state => state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return { ...cycle, interruptedDate: new Date() };
-        } else {
-          return cycle;
-        }
-      })
-    );
-  }
+  const isSubmitDisabled = !task;
+
   return (
     <HomeContainer>
-      <form onSubmit={handleSubmit(handleCreateNewCiclo)} action="">
-        <NewCycleForm/>
-        {/* 
-          exemplo de props drilling - muitas informações e ainda falta
-        <Countdown activeCycle={activeCycle} setCycles={setCycles} activeCycleId={activeCycleId}/> 
-        */}
-        <Countdown activeCycle={activeCycle} setCycles={setCycles} activeCycleId={activeCycleId}/>
+      <form onSubmit={handleSubmit(createNewCiclo)} action="">
+
+        {/*  formPrivder é proprio do hook provider */}
+        <FormProvider {...newCycleForm}>
+          <NewCycleForm />
+        </FormProvider>
+
+        <Countdown />
+
         {activeCycle ? (
-          <StopCountDownButton onClick={handleInterruptCycle} type="button">
+          <StopCountDownButton onClick={InterruptCurrentCycle} type="button">
             <HandPalm size={24} />
             Interromper
           </StopCountDownButton>
         ) : (
-          <StartCountDownButton type="submit" disabled={isSubmitDisabled}>
+          <StartCountDownButton type="submit" disabled={isSubmitDisabled} >
             <Play size={24} />
             começar
           </StartCountDownButton>

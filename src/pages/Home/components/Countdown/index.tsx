@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { CountdownContainer, Separator } from "./style";
 import { differenceInSeconds } from "date-fns";
+import { CyclesContext } from "../..";
 
-interface CountdownProps{
-  activeCycle:any;
-  setCycles:any;
-  activeCycleId:any
-}
-export function Countdown({activeCycle,setCycles,activeCycleId}:CountdownProps) {
-  const [amountSecondPassed, setAmountSecondsPassed] = useState(0);
+
+export function Countdown() {
+  const { activeCycle, activeCycleId, markCurrentCycleAsFinished,amountSecondPassed,setSecondsPassed } = useContext(CyclesContext)
+  
   const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0;
 
   useEffect(() => {
@@ -20,28 +18,42 @@ export function Countdown({activeCycle,setCycles,activeCycleId}:CountdownProps) 
           activeCycle.startDate
         );
         if (secondsInDiference >= totalSeconds) {
-          setCycles(
-            state => state.map((cycle) => {
-              if (cycle.id === activeCycleId) {
-                return { ...cycle, finishedDate: new Date() };
-              } else {
-                return cycle;
-              }
-            })
-          );
-          setAmountSecondsPassed(totalSeconds)
+          /*setCycles(
+              state => state.map((cycle) => {
+                if (cycle.id === activeCycleId) {
+                  return { ...cycle, finishedDate: new Date() };
+                } else {
+                  return cycle;
+                }
+              })
+            ); */
+          markCurrentCycleAsFinished()
+          setSecondsPassed(totalSeconds)
           clearInterval(interval)
         } else {
-          setAmountSecondsPassed(secondsInDiference);
+          setSecondsPassed(secondsInDiference);
         }
       }, 1000);
     }
-    // return so é ativado quando a variavel activeCycle é alterada, assim o use effect vai ser chamado novamente
-    // ou seja o que tinha antes o return vai ser ativado para que as novas informações sejam feitas
+
     return () => {
       clearInterval(interval);
     };
-  }, [activeCycle, totalSeconds,activeCycleId]);
+  }, [activeCycle, totalSeconds, activeCycleId,markCurrentCycleAsFinished,setSecondsPassed]);
+  const currentSeconds = activeCycle ? totalSeconds - amountSecondPassed : 0;
+
+  const minutesAmount = Math.floor(currentSeconds / 60);
+  const secondsAmount = currentSeconds % 60;
+
+
+  const minutes = String(minutesAmount).padStart(2, "0");
+  const seconds = String(secondsAmount).padStart(2, "0");
+
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `Timer ${minutes}:${seconds}`;
+    }
+  }, [minutes, seconds, activeCycle]);
   return (
     <CountdownContainer>
       <span>{minutes[0]}</span>
