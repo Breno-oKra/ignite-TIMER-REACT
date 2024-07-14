@@ -1,7 +1,8 @@
 
 
 import { ReactNode, createContext, useState, useReducer } from "react"
-import { ActionTypes, Cycle, cyclesReducer } from "../reducers/cycles";
+import {  Cycle, cyclesReducer } from "../reducers/cycles/reducer";
+import { addNewCycleAction, interruptCurrentCycleAction, markCurrentCycleAsFinishedAction } from "../reducers/cycles/actions";
 
 
 interface CreateCycleData {
@@ -26,10 +27,7 @@ export const CyclesContext = createContext({} as CyclesContextTypes)
 interface CyclesContextProviderProps {
     children: ReactNode
 }
-interface CycleState {
-    cycles: Cycle[]
-    activeCycleId: string | null
-}
+
 export function CyclesContextProvider({ children }: CyclesContextProviderProps) {
     /* const [cycles, setCycles] = useState<Cycle[]>([]); */
 
@@ -49,12 +47,7 @@ export function CyclesContextProvider({ children }: CyclesContextProviderProps) 
         setAmountSecondsPassed(seconds)
     }
     function markCurrentCycleAsFinished() {
-        dispatch({
-            type: ActionTypes.MARK_CURRENT_CYCLE_AS_FINISHED,
-            payload: {
-                activeCycleId
-            }
-        })
+        dispatch(markCurrentCycleAsFinishedAction())
         /*  setCycles(
              state => state.map((cycle) => {
                  if (cycle.id === activeCycleId) {
@@ -74,12 +67,7 @@ export function CyclesContextProvider({ children }: CyclesContextProviderProps) 
             startDate: new Date(),
         };
 
-        dispatch({
-            type: ActionTypes.ADD_NEW_CYCLE,
-            payload: {
-                newCycle
-            }
-        })
+        dispatch(addNewCycleAction(newCycle))
         /*   setCycles((state) => [...state, newCycle]); */
 
         setAmountSecondsPassed(0);
@@ -90,12 +78,7 @@ export function CyclesContextProvider({ children }: CyclesContextProviderProps) 
 
 
     function InterruptCurrentCycle() {
-        dispatch({
-            type: ActionTypes.INTERRUPT_CURRENT_CYCLE,
-            payload: {
-                activeCycleId
-            }
-        })
+        dispatch(interruptCurrentCycleAction())
         /*  setCycles(
              state => state.map((cycle) => {
                  if (cycle.id === activeCycleId) {
