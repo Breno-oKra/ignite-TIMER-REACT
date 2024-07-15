@@ -1,8 +1,9 @@
 
 
-import { ReactNode, createContext, useState, useReducer } from "react"
-import {  Cycle, cyclesReducer } from "../reducers/cycles/reducer";
+import { ReactNode, createContext, useState, useReducer, useEffect } from "react"
+import { Cycle, cyclesReducer } from "../reducers/cycles/reducer";
 import { addNewCycleAction, interruptCurrentCycleAction, markCurrentCycleAsFinishedAction } from "../reducers/cycles/actions";
+import { differenceInSeconds } from "date-fns";
 
 
 interface CreateCycleData {
@@ -35,14 +36,32 @@ export function CyclesContextProvider({ children }: CyclesContextProviderProps) 
     const [cyclesState, dispatch] = useReducer(cyclesReducer, {
         cycles: [],
         activeCycleId: null
+    }, (inithialState) => {
+        const storedStateAsJSON = localStorage.getItem("@timerBreno-okra:cycles-state")
+        if (storedStateAsJSON) {
+            return JSON.parse(storedStateAsJSON)
+        }
+        return inithialState
     })
+    useEffect(() => {
+        const stateJSON = JSON.stringify(cyclesState)
+        localStorage.setItem("@timerBreno-okra:cycles-state", stateJSON)
+    }, [cyclesState])
 
     const { cycles, activeCycleId } = cyclesState
-
+    const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
 
     /*  const [activeCycleId, setActiveCycledId] = useState<string | null>(null); */
-    const [amountSecondPassed, setAmountSecondsPassed] = useState(0);
-    const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
+    const [amountSecondPassed, setAmountSecondsPassed] = useState(() => {
+        if (activeCycle) {
+            return differenceInSeconds(
+                new Date(),
+                new Date(activeCycle.startDate)
+            )
+        }
+        return 0
+    });
+
     function setSecondsPassed(seconds: number) {
         setAmountSecondsPassed(seconds)
     }

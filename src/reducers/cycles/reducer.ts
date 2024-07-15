@@ -16,7 +16,8 @@ interface CycleState {
 //tornando seu código mais claro e compreensível. 
 //Ao utilizar enums, você pode criar um conjunto de constantes que são semanticamente relevantes.
 
-export function cyclesReducer(state: CycleState, action: any) {
+export function cyclesReducer(state: CycleState, action:any) {
+    console.log(action)
     switch (action.type) {
         case ActionTypes.ADD_NEW_CYCLE:
             /*  return {
